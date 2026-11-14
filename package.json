@@ -1,0 +1,11 @@
+{
+  "name": "orca-mail-inbox",
+  "private": true,
+  "type": "module",
+  "description": "Verification harness for the Mail Inbox Orca Lab plugin: unit tests, manifest and panel checks, screenshots.",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check": "npm test",
+    "shots": "node scripts/shots.mjs"
+  }
+}
