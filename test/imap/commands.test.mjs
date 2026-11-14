@@ -42,3 +42,21 @@ test('toSequenceSet compresses runs of UIDs', () => {
   assert.equal(toSequenceSet([5]), '5')
   assert.throws(() => toSequenceSet([]), /empty/)
 })
+
+test('slice 1 is read-only by construction: only reading verbs reach the socket', () => {
+  const state = { selected: 'INBOX', trash: 'Trash' }
+  for (const allowed of ['CAPABILITY', 'LOGIN "u" "p"', 'AUTHENTICATE PLAIN eA==', 'LIST "" "*"', 'EXAMINE "INBOX"',
+    'UID SEARCH ALL', 'UID FETCH 1:5 (UID FLAGS INTERNALDATE RFC822.SIZE ENVELOPE)', 'NOOP', 'LOGOUT']) {
+    assert.doesNotThrow(() => encodeCommand('A1', allowed, state), allowed)
+  }
+  for (const refused of ['SELECT "INBOX"', 'UID STORE 5 +FLAGS (\\Seen)', 'UID MOVE 5 "Trash"', 'UID COPY 5 "Trash"',
+    'DELETE "INBOX"', 'RENAME "a" "b"', 'APPEND "INBOX" {5}', 'CREATE "x"']) {
+    assert.throws(() => encodeCommand('A1', refused, state), /read-only/, refused)
+  }
+})
+
+test('a FETCH that would mark mail as read (BODY[] without PEEK) is refused', () => {
+  const state = { selected: 'INBOX', trash: 'Trash' }
+  assert.throws(() => encodeCommand('A1', 'UID FETCH 5 (BODY[HEADER])', state), /read-only/)
+  assert.doesNotThrow(() => encodeCommand('A1', 'UID FETCH 5 (BODY.PEEK[HEADER])', state))
+})

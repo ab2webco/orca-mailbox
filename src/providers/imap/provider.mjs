@@ -71,7 +71,7 @@ export function createImapProvider (account, password, options = {}) {
       return folders
     },
 
-    async syncPage (folder, cursor, pageSize) {
+    async syncMetadata (folder, cursor, pageSize) {
       const c = conn()
       const examined = await c.run(`EXAMINE ${quoteString(folder.id)}`)
       c.markSelected(folder.id)

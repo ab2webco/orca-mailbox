@@ -12,15 +12,27 @@ import { parseSidecarRequest } from '../src/sidecar/messages.mjs'
 import { createImapProvider } from '../src/providers/imap/provider.mjs'
 import { createRecordStore, buildSnapshot, resolveDataDir } from '../src/sync/record-store.mjs'
 import { runSync } from '../src/sync/run-sync.mjs'
+import { createRateLimiter } from '../src/domain/backoff.mjs'
 import { startLoopbackServer, renderPasswordPage, renderMessagePage, openCommandFor } from '../src/sidecar/loopback.mjs'
 
 /** @typedef {import('../src/sidecar/messages.mjs').SidecarEvent} SidecarEvent */
 
 const PAGE_SIZE = 200
+/** IMAP has no published quota; a few page requests per second keeps a shared cPanel host comfortable. */
+const PAGES_PER_SECOND = 4
 
 /** @param {SidecarEvent} event */
 function emit (event) {
   process.stdout.write(`${JSON.stringify(event)}\n`)
+}
+
+/**
+ * Exits once everything written to stdout has been flushed: pipe writes are
+ * asynchronous, and exiting earlier can drop the last snapshot and the `done` line.
+ * @param {number} code
+ */
+function finish (code) {
+  process.stdout.write('', () => process.exit(code))
 }
 
 /** @param {unknown} error */
@@ -47,13 +59,15 @@ async function handle (request) {
       const store = createRecordStore(dataDir, account.id)
       const provider = createImapProvider(account, password)
       let lastSnapshotAt = 0
+      const sleep = (/** @type {number} */ ms) => new Promise((resolve) => setTimeout(resolve, ms))
       await runSync({
         accountId: account.id,
         provider,
         store,
         pageSize: PAGE_SIZE,
         now: Date.now,
-        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        sleep,
+        limiter: createRateLimiter({ unitsPerSecond: PAGES_PER_SECOND, now: Date.now, sleep }),
         shouldStop: () => stopping,
         onPage: (state) => {
           // Replaying the log every page is what keeps the snapshot honest; pace it.
@@ -65,11 +79,6 @@ async function handle (request) {
       })
       emit({ type: 'snapshot', accountId: account.id, snapshot: buildSnapshot(store.loadRecords(), store.loadState(), recentLimit, Date.now()) })
       emit({ type: 'done', accountId: account.id })
-      return
-    }
-    case 'snapshot': {
-      const store = createRecordStore(dataDir, request.accountId)
-      emit({ type: 'snapshot', accountId: request.accountId, snapshot: buildSnapshot(store.loadRecords(), store.loadState(), request.recentLimit, Date.now()) })
       return
     }
     case 'remove': {
@@ -153,14 +162,15 @@ process.stdin.on('data', (chunk) => {
   input = ''
   if (!parsed.ok) {
     emit({ type: 'error', accountId: null, kind: 'input', message: parsed.reason })
-    process.exit(2)
+    finish(2)
+    return
   }
   const accountId = 'account' in parsed.request ? parsed.request.account.id : parsed.request.accountId
   handle(parsed.request).then(
-    () => process.exit(0),
+    () => finish(0),
     (error) => {
       emit({ type: 'error', accountId, kind: kindOf(error), message: messageOf(error) })
-      process.exit(1)
+      finish(1)
     }
   )
 })

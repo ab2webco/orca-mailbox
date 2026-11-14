@@ -7,7 +7,6 @@
 /**
  * @typedef {{ op: 'sync', account: ImapAccountConfig, password: string, recentLimit: number }
  *   | { op: 'credential', account: ImapAccountConfig, timeoutMs: number }
- *   | { op: 'snapshot', accountId: string, recentLimit: number }
  *   | { op: 'remove', accountId: string }} SidecarRequest
  */
 
@@ -73,10 +72,6 @@ export function parseSidecarRequest (line) {
       const timeoutMs = typeof value.timeoutMs === 'number' && value.timeoutMs > 0 ? value.timeoutMs : 300000
       return { ok: true, request: { op: 'credential', account, timeoutMs } }
     }
-    case 'snapshot':
-      if (typeof value.accountId !== 'string' || !ACCOUNT_ID_PATTERN.test(value.accountId)) return { ok: false, reason: 'snapshot: invalid accountId' }
-      if (!isLimit(value.recentLimit)) return { ok: false, reason: 'snapshot: invalid recentLimit' }
-      return { ok: true, request: { op: 'snapshot', accountId: value.accountId, recentLimit: Number(value.recentLimit) } }
     case 'remove':
       if (typeof value.accountId !== 'string' || !ACCOUNT_ID_PATTERN.test(value.accountId)) return { ok: false, reason: 'remove: invalid accountId' }
       return { ok: true, request: { op: 'remove', accountId: value.accountId } }

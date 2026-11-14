@@ -14,9 +14,9 @@ test('a sync request needs a well-formed account and a password', () => {
   assert.equal(parseSidecarRequest(JSON.stringify({ op: 'sync', account: { ...account, host: 'a b' }, password: 'p', recentLimit: 50 })).ok, false)
 })
 
-test('credential, snapshot and remove requests are recognized', () => {
+test('credential and remove requests are recognized; there is no separate snapshot op', () => {
   assert.equal(parseSidecarRequest(JSON.stringify({ op: 'credential', account, timeoutMs: 300000 })).ok, true)
-  assert.equal(parseSidecarRequest(JSON.stringify({ op: 'snapshot', accountId: 'imap-a1b2', recentLimit: 50 })).ok, true)
+  assert.equal(parseSidecarRequest(JSON.stringify({ op: 'snapshot', accountId: 'imap-a1b2', recentLimit: 50 })).ok, false)
   assert.equal(parseSidecarRequest(JSON.stringify({ op: 'remove', accountId: 'imap-a1b2' })).ok, true)
   assert.equal(parseSidecarRequest(JSON.stringify({ op: 'remove', accountId: 'A/B' })).ok, false)
 })

@@ -6,6 +6,24 @@ import { assertSafeImapCommand } from '../../domain/safety.mjs'
 import { quoteString } from './protocol.mjs'
 
 /**
+ * Slice 1 only reads. Anything that could change a mailbox (SELECT, which lets later
+ * fetches set \Seen; STORE, COPY, MOVE, APPEND, CREATE, DELETE, RENAME) is refused
+ * here, so "read-only" is enforced rather than merely avoided. Slice 3 widens this
+ * list next to its own guards.
+ */
+const READ_ONLY_VERBS = new Set(['CAPABILITY', 'LOGIN', 'AUTHENTICATE', 'LIST', 'EXAMINE', 'STATUS', 'SEARCH', 'FETCH', 'NOOP', 'LOGOUT'])
+/** FETCH items that set \Seen (RFC 9051 §6.4.5): BODY[...] without .PEEK, RFC822, RFC822.TEXT. */
+const MARKS_SEEN = /\bBODY\[|\bRFC822(?:\.TEXT)?(?![.\w])/i
+
+/** @param {string} command */
+function assertReadOnly (command) {
+  const verb = command.trim().toUpperCase().replace(/^UID\s+/, '').split(/\s+/)[0]
+  if (!READ_ONLY_VERBS.has(verb) || (verb === 'FETCH' && MARKS_SEEN.test(command))) {
+    throw new Error(`IMAP command refused: this version is read-only (${verb})`)
+  }
+}
+
+/**
  * @param {string} tag
  * @param {string} command  Without tag and without CRLF.
  * @param {{ selected: string | null, trash: string | null }} state
@@ -16,6 +34,7 @@ export function encodeCommand (tag, command, state) {
     throw new RangeError('IMAP command must be a single line')
   }
   assertSafeImapCommand(command, state)
+  assertReadOnly(command)
   return Buffer.from(`${tag} ${command}\r\n`, 'utf8')
 }
 

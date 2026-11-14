@@ -8,7 +8,8 @@ import { createMessageRecord } from '../../src/domain/message.mjs'
 import { startSync, applyPage, finishSync } from '../../src/domain/sync-state.mjs'
 import { buildSnapshot } from '../../src/sync/record-store.mjs'
 
-const NOW = Date.UTC(2026, 10, 13, 15, 30)
+/** The harness fixes the page clock here, so ages and staleness read the same every run. */
+export const NOW = Date.UTC(2026, 10, 13, 15, 30)
 
 export const SAMPLE_ACCOUNTS = [
   { id: 'imap-sample0work', provider: 'imap', label: 'Work (sample)', host: 'mail.example.com', port: 993, username: 'team@example.com', trashFallbacks: ['Trash'], addedAt: NOW - 86400000 },
@@ -87,6 +88,13 @@ export const INBOX_STATES = {
     'ui:selectedAccount': 'imap-sample0home',
     'status:imap-sample0home': { running: false, error: null, at: NOW },
     'snapshot:imap-sample0home': doneSnapshot()
+  },
+  // The worker stopped mid-sync (Orca quit): status still says running, but nothing
+  // has been reported for 20 minutes.
+  stale: {
+    accounts: SAMPLE_ACCOUNTS.slice(0, 1),
+    'status:imap-sample0work': { running: true, error: null, at: NOW - 20 * 60000 },
+    'snapshot:imap-sample0work': { ...syncingSnapshot(), updatedAt: NOW - 20 * 60000 }
   },
   error: {
     accounts: SAMPLE_ACCOUNTS.slice(0, 1),

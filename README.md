@@ -89,8 +89,14 @@ Microsoft's sign-in and mail APIs).
 
 `test/domain/safety.test.mjs` fails if the requested Gmail scopes include
 `https://mail.google.com/`, if any shipped file names that scope, `permanentDelete`, or
-an `EXPUNGE`/`CLOSE` command outside the guard. In slice 1 folders are opened with
-`EXAMINE`, which the server keeps read-only.
+an `EXPUNGE`/`CLOSE` command outside the guard.
+
+Version 0.1 is read-only **by construction**, not by habit: the IMAP command encoder
+only lets reading verbs through (`CAPABILITY`, `LOGIN`/`AUTHENTICATE`, `LIST`,
+`EXAMINE`, `STATUS`, `SEARCH`, `FETCH`, `NOOP`, `LOGOUT`) and refuses a `FETCH` that
+would set `\Seen` (`BODY[...]` without `.PEEK`, `RFC822`). Folders are opened with
+`EXAMINE`, which the server keeps read-only. Slice 3 widens the list next to its own
+guards.
 
 ## Gmail: scope, sign-in and Google Cloud setup
 
@@ -221,6 +227,15 @@ output in `e2e-results/` and are not committed.
 - Windows is untested: the helper is started with `/usr/bin/env`.
 - Gmail over IMAP counts a message once per label (see above); `\All` (All Mail) is
   skipped so totals are not doubled again.
-- No live IMAP sync has run against a real mailbox yet; the parser, page plan and store
-  are unit-tested, and the client was checked live against two public servers without
-  signing in. The first real run is the owner's cPanel mailbox.
+- Re-syncs fetch new mail only: messages deleted on the server, and flags changed
+  there (read, unread), are not reflected yet, so totals drift until a full re-sync
+  (planned with the actions in slice 3).
+- Page requests are paced at 4 per second and failures retry with exponential backoff
+  (up to 5 attempts, 1 s to 60 s, full jitter).
+- No live IMAP sync has run against a real mailbox yet. The parser, page plan, store,
+  guards and validation are unit-tested; the glue that drives them (worker, sidecar,
+  sync runner) was not test-driven and was checked live only without credentials
+  (`e2e-results/live/glue-runs.md`). The first real run is the owner's cPanel mailbox.
+- Google accepting a loopback redirect URI with a path (`http://127.0.0.1:<port>/<random>`)
+  is unverified: the dry run stops at `invalid_client`, before Google checks the
+  redirect. The owner's probe run settles it.

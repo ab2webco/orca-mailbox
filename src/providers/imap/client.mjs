@@ -5,6 +5,7 @@
 // Commands run one at a time. Every byte sent goes through encodeCommand, which runs
 // the safety guard; this file has exactly one socket write.
 import tls from 'node:tls'
+import { isIP } from 'node:net'
 import { createResponseReader, parseResponse } from './protocol.mjs'
 import { encodeCommand } from './commands.mjs'
 
@@ -41,7 +42,8 @@ export class ImapError extends Error {
  */
 export function openConnection ({ host, port, timeoutMs }) {
   return new Promise((resolve, reject) => {
-    const socket = tls.connect({ host, port, servername: host })
+    // SNI takes a host name only (RFC 6066); an IP address is sent without it.
+    const socket = tls.connect({ host, port, servername: isIP(host) ? undefined : host })
     const reader = createResponseReader()
     /** @type {{ selected: string | null, trash: string | null }} */
     const state = { selected: null, trash: null }
@@ -51,6 +53,9 @@ export function openConnection ({ host, port, timeoutMs }) {
     /** @type {Promise<unknown>} */
     let queue = Promise.resolve()
     let greeted = false
+    // A write to a destroyed socket emits nothing, so a command sent after the close
+    // would wait forever. Once closed, every command fails at once.
+    let closed = false
     /** @type {string[]} */
     let capabilities = []
 
@@ -66,7 +71,10 @@ export function openConnection ({ host, port, timeoutMs }) {
       socket.destroy()
     })
     socket.on('error', (error) => failAll(new ImapError(`${host}: ${error.message}`, { kind: 'network' })))
-    socket.on('close', () => failAll(new ImapError(`${host} closed the connection`, { kind: 'network' })))
+    socket.on('close', () => {
+      closed = true
+      failAll(new ImapError(`${host} closed the connection`, { kind: 'network' }))
+    })
 
     socket.on('data', (chunk) => {
       for (const bytes of reader.push(chunk)) {
@@ -114,6 +122,10 @@ export function openConnection ({ host, port, timeoutMs }) {
       get capabilities () { return capabilities },
       run (command) {
         const step = queue.then(() => new Promise((resolveRun, rejectRun) => {
+          if (closed) {
+            rejectRun(new ImapError(`${host} connection is closed`, { kind: 'network' }))
+            return
+          }
           seq += 1
           const tag = `M${seq}`
           current = { tag, untagged: [], resolve: resolveRun, reject: rejectRun }
@@ -131,6 +143,7 @@ export function openConnection ({ host, port, timeoutMs }) {
       markSelected (mailbox) { state.selected = mailbox },
       setTrash (trash) { state.trash = trash },
       async logout () {
+        if (closed) return
         try {
           await connection.run('LOGOUT')
         } catch {

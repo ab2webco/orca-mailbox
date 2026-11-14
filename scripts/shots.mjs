@@ -12,8 +12,18 @@ import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ROOT, requireDep } from './deps.mjs'
-import { INBOX_STATES, SETTINGS_STATES } from '../e2e/fixtures/sample-mailbox.mjs'
+import { INBOX_STATES, SETTINGS_STATES, NOW } from '../e2e/fixtures/sample-mailbox.mjs'
 import { validateImapInput } from '../src/worker/accounts.mjs'
+import { renderPasswordPage, renderMessagePage } from '../src/sidecar/loopback.mjs'
+
+// The pages the sidecar serves on 127.0.0.1 in the system browser, rendered by the
+// real functions with sample account details.
+const SAMPLE_VIEW = { label: 'Work (sample)', username: 'team@example.com', host: 'mail.example.com', action: '/sample-nonce' }
+const LOOPBACK_PAGES = {
+  password: renderPasswordPage({ ...SAMPLE_VIEW, error: null }),
+  'password-rejected': renderPasswordPage({ ...SAMPLE_VIEW, error: 'The server rejected this password. Check it, or use an app password.' }),
+  connected: renderMessagePage('Connected', 'Found 12 folders. You can close this tab and go back to Orca.')
+}
 
 const { chromium } = requireDep('playwright')
 const OUT = process.env.MAILBOX_SHOTS ?? join(ROOT, 'e2e-results', 'shots')
@@ -83,6 +93,7 @@ try {
       for (const theme of /** @type {const} */ (['light', 'dark'])) {
         for (const width of WIDTHS) {
           const page = await browser.newPage({ viewport: { width, height: 900 }, colorScheme: theme, locale: 'en-US', timezoneId: 'America/Bogota' })
+          await page.clock.setFixedTime(new Date(NOW))
           await page.exposeFunction('harnessRunCommand', workerStandIn)
           await page.addInitScript((seed) => { /** @type {HarnessWindow} */ (window).__storage = seed }, JSON.parse(JSON.stringify(storage)))
           await page.addInitScript(hostStandIn)
@@ -101,6 +112,20 @@ try {
           count += 1
           await page.close()
         }
+      }
+    }
+  }
+  for (const [stateName, html] of Object.entries(LOOPBACK_PAGES)) {
+    for (const theme of /** @type {const} */ (['light', 'dark'])) {
+      for (const width of WIDTHS) {
+        const page = await browser.newPage({ viewport: { width, height: 700 }, colorScheme: theme, locale: 'en-US' })
+        await page.setContent(html)
+        const wide = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+        const name = `loopback-${stateName}-${theme}-${width}.png`
+        if (wide) overflow.push(name)
+        await page.screenshot({ path: join(OUT, name), fullPage: true })
+        count += 1
+        await page.close()
       }
     }
   }

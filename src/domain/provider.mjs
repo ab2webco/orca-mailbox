@@ -24,7 +24,7 @@
  * @property {ProviderKind} kind
  * @property {() => Promise<void>} connect
  * @property {() => Promise<Folder[]>} listFolders  Folders worth syncing.
- * @property {(folder: Folder, cursor: unknown, pageSize: number) => Promise<SyncPage>} syncPage
+ * @property {(folder: Folder, cursor: unknown, pageSize: number) => Promise<SyncPage>} syncMetadata
  * @property {() => Promise<void>} close
  */
 

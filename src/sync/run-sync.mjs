@@ -18,11 +18,12 @@ import { withRetry } from '../domain/backoff.mjs'
  * @param {number} options.pageSize
  * @param {() => number} options.now
  * @param {(ms: number) => Promise<void>} options.sleep
+ * @param {{ take: (units: number) => Promise<void> }} options.limiter  Paces page requests.
  * @param {(state: SyncState) => void} options.onPage
  * @param {() => boolean} options.shouldStop
  * @returns {Promise<SyncState>}
  */
-export async function runSync ({ accountId, provider, store, pageSize, now, sleep, onPage, shouldStop }) {
+export async function runSync ({ accountId, provider, store, pageSize, now, sleep, limiter, onPage, shouldStop }) {
   const retry = { maxAttempts: 5, baseMs: 1000, maxMs: 60000, random: Math.random, sleep }
   let connected = false
   const reconnect = async () => {
@@ -44,7 +45,8 @@ export async function runSync ({ accountId, provider, store, pageSize, now, slee
       const current = folder
       const page = await withRetry(async () => {
         try {
-          return await provider.syncPage(current, current.cursor, pageSize)
+          await limiter.take(1)
+          return await provider.syncMetadata(current, current.cursor, pageSize)
         } catch (error) {
           // A dropped connection is retried on a fresh one.
           if (/** @type {{ retry?: boolean }} */ (error).retry) await reconnect().catch(() => {})

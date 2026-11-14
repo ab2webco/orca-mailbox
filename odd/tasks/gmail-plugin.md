@@ -23,16 +23,16 @@ deleted.
 
 ## Slice 1 checklist
 
-- [ ] S1-01 Skeleton: `orca-plugin.json` (id `orca-mailbox`, publisher `ab2web`),
+- [x] S1-01 Skeleton: `orca-plugin.json` (id `orca-mailbox`, publisher `ab2web`),
       nav panel, settings panel, README, AGENTS.md, check script; manifest test.
-- [ ] S1-02 Host facts: can the worker open raw TCP/TLS sockets and listen on loopback?
+- [x] S1-02 Host facts: can the worker open raw TCP/TLS sockets and listen on loopback?
       Evidence from orca-oss source. Decide where IMAP and the OAuth loopback run.
-- [ ] S1-03 Domain model: normalized message record (accountId, provider, folder, from,
+- [x] S1-03 Domain model: normalized message record (accountId, provider, folder, from,
       to, subject, date, flags/labels, size, snippet), account model, record mapping
       per provider, size and count totals. Unit tests on hand-built records.
-- [ ] S1-04 Safety guards: tests that fail if any code path can issue IMAP EXPUNGE
+- [x] S1-04 Safety guards: tests that fail if any code path can issue IMAP EXPUNGE
       outside Trash, call Graph `permanentDelete`, or request `https://mail.google.com/`.
-- [ ] S1-05 Sync engine: paginated, resumable cursor, rate limit with exponential
+- [x] S1-05 Sync engine: paginated, resumable cursor, rate limit with exponential
       backoff, progress reporting; provider-agnostic. Unit tests.
 - [ ] S1-06 IMAP provider: TLS connect (993), LOGIN, LIST + SPECIAL-USE (Trash
       discovery with configurable fallback), UID FETCH metadata in batches. Protocol
@@ -40,16 +40,16 @@ deleted.
 - [ ] S1-07 Gmail: OAuth loopback + PKCE proof in the host, narrowest scope chosen and
       cited, token lifetime documented, metadata mapping. Sync implemented or moved to
       slice 1b, stated with the reason.
-- [ ] S1-08 Outlook: narrowest Graph delegated permission researched and cited, Entra
+- [x] S1-08 Outlook: narrowest Graph delegated permission researched and cited, Entra
       app registration steps documented. Sync implemented or moved to slice 1b.
 - [ ] S1-09 Worker wiring: commands, secrets for credentials, storage for records and
       progress, panel ↔ worker request channel through storage.
-- [ ] S1-10 Panels: nav panel shows ONE account at a time with an account switcher
+- [x] S1-10 Panels: nav panel shows ONE account at a time with an account switcher
       (its sync progress, total count, total size, recent messages list; never a mixed
       list); settings panel (add IMAP account, remove account). Nothing destructive.
-- [ ] S1-11 Screenshots of both panels at 1440, 768, 390, 320, light and dark, read and
+- [x] S1-11 Screenshots of both panels at 1440, 768, 390, 320, light and dark, read and
       kept under `e2e-results/`.
-- [ ] S1-12 Live probes: what ran live, what is pending for the owner (cPanel IMAP,
+- [x] S1-12 Live probes: what ran live, what is pending for the owner (cPanel IMAP,
       Google Cloud client, Entra app).
 - [ ] S1-13 CI: GitHub Actions running typecheck and tests; branch pushed; ONE PR on
       ab2webco/orca-mailbox with CI green.
@@ -72,3 +72,21 @@ deleted.
 - `npm run shots` — panel screenshots into `e2e-results/`.
 - Live: IMAP against a real mailbox (owner), Gmail OAuth (owner, needs the Google
   Cloud client), Graph OAuth (owner, needs the Entra app).
+
+## Status (2026-11-14)
+
+Proof for each ticked item is in the PR and in `e2e-results/live/`. Open items:
+
+- S1-06 IMAP provider: implemented; parser, mapping, page plan, commands and store are
+  unit-tested; the client ran live against imap.gmail.com and outlook.office365.com
+  without signing in; a sync against a real mailbox is **pending** (owner's cPanel).
+- S1-07 Gmail: scope `gmail.modify` chosen and cited; PKCE and loopback pieces tested;
+  dry run live under Orca's Node (`invalid_client`, loopback OK); the full sign-in is
+  **pending** the owner's Google Cloud client. Gmail API sync moves to **slice 1b**.
+- S1-08 Outlook: permission researched and cited, Entra steps documented; Graph sync
+  moves to **slice 1b**.
+- S1-09 Worker wiring: implemented; `main.mjs` loads inside the reproduced sandbox; the
+  sidecar ops ran live without credentials; **not yet run inside the Orca app**
+  (Orca has no CLI to install a plugin or invoke its commands). The glue was not
+  test-driven; it was checked by live runs.
+- S1-13 CI and PR: see the PR.

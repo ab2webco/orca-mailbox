@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -50,7 +50,8 @@ test('the plugin tree has no symlinks and no node_modules (Orca rejects both)', 
       if (name === '.git') continue
       const full = join(dir, name)
       assert.notEqual(name, 'node_modules', full)
-      const stat = statSync(full, { throwIfNoEntry: false })
+      const stat = lstatSync(full, { throwIfNoEntry: false })
+      assert.ok(!stat?.isSymbolicLink(), `symlink: ${full}`)
       if (stat?.isDirectory()) walk(full)
     }
   }

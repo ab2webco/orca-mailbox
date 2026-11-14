@@ -61,6 +61,8 @@ export default function activate (orca) {
   const syncing = new Map()
   /** @type {{ accountId: string, child: import('node:child_process').ChildProcess } | null} */
   let credentialFlow = null
+  /** Accounts removed in this session: late events from their sync are ignored. */
+  const removed = new Set()
 
   // Writes are chained: two storage.set in flight may resolve out of order, and the
   // later one must not be overwritten by the earlier (orca-wa-inbox learned this live).
@@ -117,6 +119,8 @@ export default function activate (orca) {
     child.stderr?.setEncoding('utf8')
     child.stderr?.on('data', (chunk) => { stderr = (stderr + chunk).slice(-2000) })
     child.on('error', (error) => { stderr += error.message })
+    // A sidecar that already exited closes its stdin; writing then must not crash the worker.
+    child.stdin?.on('error', (error) => { stderr += error.message })
     child.on('close', (code) => {
       children.delete(child)
       onExit(code, stderr)
@@ -141,11 +145,13 @@ export default function activate (orca) {
     const child = startSidecar(
       { op: 'sync', account: { ...account }, password: secret.value, recentLimit: RECENT_LIMIT },
       (event) => {
+        if (removed.has(account.id)) return
         if (event.type === 'snapshot' && event.accountId === account.id) void put(KEYS.snapshot(account.id), event.snapshot)
         if (event.type === 'error') failure = { kind: event.kind, message: event.message }
       },
       (code, stderr) => {
         syncing.delete(account.id)
+        if (removed.has(account.id)) return
         if (code !== 0 && !failure) failure = { kind: 'internal', message: stderr.trim().split('\n').pop() || `sidecar exited with ${code}` }
         void put(KEYS.status(account.id), { running: false, error: failure, at: Date.now() })
       }
@@ -217,7 +223,10 @@ export default function activate (orca) {
       await put(KEYS.result, { requestId, ok: false, message: 'That account is not connected.', at: Date.now() })
       return
     }
-    syncing.get(accountId)?.stdin?.end()
+    removed.add(accountId)
+    // A running sync keeps writing until its next page; let it stop before the copy is deleted.
+    const running = syncing.get(accountId)
+    if (running) await stopChild(running)
     await orca.host.call('secrets.delete', { key: passwordSecretKey(accountId) }).catch(() => {})
     await put(KEYS.accounts, removeAccount(list, accountId))
     await drop(KEYS.snapshot(accountId))
@@ -261,6 +270,26 @@ export default function activate (orca) {
   orca.commands.register('mailbox.sync', async () => {
     void syncAll().catch((error) => orca.log(`sync failed: ${error?.message}`))
     return { ok: true }
+  })
+}
+
+/**
+ * Asks a sidecar to stop (stdin end) and waits for it to exit, killing it after 10 s.
+ * @param {import('node:child_process').ChildProcess} child
+ * @returns {Promise<void>}
+ */
+function stopChild (child) {
+  return new Promise((resolve) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => child.kill('SIGTERM'), 10_000)
+    child.once('close', () => {
+      clearTimeout(timer)
+      resolve()
+    })
+    child.stdin?.end()
   })
 }
 

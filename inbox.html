@@ -177,13 +177,22 @@
     })
   }
 
+  // A sync that has reported nothing for this long is not running: Orca quit or the
+  // worker stopped mid-sync. It resumes from its saved cursor on the next Sync.
+  var STALE_MS = 5 * 60 * 1000
+  function isRunning (status, snapshot) {
+    if (!status || !status.running) return false
+    var last = Math.max(status.at || 0, (snapshot && snapshot.updatedAt) || 0)
+    return Date.now() - last < STALE_MS
+  }
+
   function renderStatus (status, snapshot) {
     var box = $('status')
     var text = $('status-text')
     var detail = $('status-detail')
     var bar = $('bar')
     var progress = snapshot && snapshot.progress
-    var running = status && status.running
+    var running = isRunning(status, snapshot)
     var error = status && status.error
     box.classList.toggle('error', !!error && !running)
     bar.hidden = true
@@ -208,7 +217,10 @@
       }
       return
     }
-    if (snapshot && snapshot.phase === 'done') {
+    if (status && status.running) {
+      text.textContent = 'Sync paused'
+      detail.textContent = 'It stopped reporting. Sync now continues where it stopped.'
+    } else if (snapshot && snapshot.phase === 'done') {
       text.textContent = 'Up to date'
       detail.textContent = 'Last sync ' + ago(snapshot.updatedAt)
     } else if (snapshot && snapshot.phase === 'syncing') {
@@ -273,7 +285,7 @@
     $('size').textContent = formatBytes(totals.sizeBytes)
     $('unread').textContent = formatCount(totals.unread)
     renderStatus(status, snapshot)
-    $('sync').disabled = !!(status && status.running)
+    $('sync').disabled = isRunning(status, snapshot)
     renderMessages(snapshot)
   }
 
