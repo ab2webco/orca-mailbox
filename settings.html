@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mailbox settings</title>
+<style>
+  :root {
+    --mb-card: var(--card, transparent);
+    --mb-accent: var(--primary, #e5e5e5);
+    --mb-accent-fg: var(--primary-foreground, #171717);
+    --mb-danger: var(--destructive, #ff6568);
+    --mb-radius: var(--radius, 8px);
+    --mb-input: var(--input, rgb(255 255 255 / 0.15));
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--background, #0a0a0a); color: var(--foreground, #fafafa); }
+  body { padding: 16px; font-size: 13px; line-height: 1.45; font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif); }
+  .page { max-width: 760px; margin: 0 auto; }
+  [hidden] { display: none !important; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 24px 0 8px; }
+  p { margin: 0 0 8px; }
+  .muted { color: var(--muted-foreground, #a1a1a1); }
+  .card { border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 12px; }
+  ul.accounts { list-style: none; margin: 0; padding: 0; }
+  .acc { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border, rgb(255 255 255 / 0.1)); flex-wrap: wrap; }
+  .acc:last-child { border-bottom: 0; }
+  .acc-main { flex: 1 1 180px; min-width: 0; }
+  .acc-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acc-sub { color: var(--muted-foreground, #a1a1a1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-size: 11px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: 999px; padding: 1px 8px; color: var(--muted-foreground, #a1a1a1); }
+  .confirm { flex-basis: 100%; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field.wide { grid-column: 1 / -1; }
+  label { font-weight: 600; }
+  .hint { color: var(--muted-foreground, #a1a1a1); font-size: 12px; }
+  input {
+    font: inherit; color: var(--foreground, #fafafa); background: transparent; width: 100%;
+    border: 1px solid var(--mb-input); border-radius: var(--mb-radius); padding: 7px 10px;
+  }
+  input[aria-invalid="true"] { border-color: var(--mb-danger); }
+  .error { color: var(--mb-danger); font-size: 12px; }
+  .actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: inherit; color: var(--foreground, #fafafa); background: var(--mb-card); cursor: pointer;
+    border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 7px 12px;
+  }
+  button.primary { background: var(--mb-accent); color: var(--mb-accent-fg); border-color: transparent; font-weight: 600; }
+  button.danger { color: var(--mb-danger); }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .pending { margin-top: 12px; }
+  .pending.error-state { border-color: var(--mb-danger); }
+  code.url { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--muted, #262626); font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; overflow-wrap: anywhere; user-select: all; }
+  .notice { margin-top: 8px; }
+  @media (max-width: 480px) { form { grid-template-columns: minmax(0, 1fr); } body { padding: 12px; } }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Mailbox</h1>
+<p class="muted">Load the headers of your mail into Orca. Read-only: nothing here moves, flags or deletes mail.</p>
+
+<h2>Accounts</h2>
+<div class="card">
+  <ul class="accounts" id="accounts"></ul>
+  <p class="muted" id="no-accounts" hidden>No accounts yet. Add one below.</p>
+</div>
+<p class="notice muted" id="result" role="status" aria-live="polite"></p>
+
+<h2>Add an IMAP account</h2>
+<div class="card">
+  <p class="muted">Works with any mailbox that offers IMAP over TLS: cPanel hosting, Zoho, iCloud, Yahoo, Gmail with an app password. The password is typed in your browser on a page served by this computer, never in this panel.</p>
+  <form id="form" novalidate>
+    <div class="field wide">
+      <label for="label">Account name</label>
+      <input id="label" name="label" maxlength="60" placeholder="Work" autocomplete="off">
+      <span class="error" data-for="label"></span>
+    </div>
+    <div class="field">
+      <label for="host">IMAP server</label>
+      <input id="host" name="host" placeholder="mail.example.com" autocomplete="off" spellcheck="false">
+      <span class="error" data-for="host"></span>
+    </div>
+    <div class="field">
+      <label for="port">Port</label>
+      <input id="port" name="port" inputmode="numeric" value="993">
+      <span class="error" data-for="port"></span>
+    </div>
+    <div class="field wide">
+      <label for="username">Username</label>
+      <input id="username" name="username" placeholder="you@example.com" autocomplete="off" spellcheck="false">
+      <span class="error" data-for="username"></span>
+    </div>
+    <div class="field wide">
+      <label for="trashFolder">Trash folder <span class="hint">(optional)</span></label>
+      <input id="trashFolder" name="trashFolder" placeholder="Detected automatically" autocomplete="off">
+      <span class="hint">Only needed if your server does not mark its Trash folder. Used by a later version for safe deletes.</span>
+      <span class="error" data-for="trashFolder"></span>
+    </div>
+    <div class="actions">
+      <button class="primary" type="submit" id="submit">Continue in browser</button>
+      <span class="error" data-for="form"></span>
+    </div>
+  </form>
+
+  <div class="card pending" id="pending" hidden>
+    <p><strong id="pending-title"></strong></p>
+    <p class="muted" id="pending-text"></p>
+    <code class="url" id="pending-url" hidden></code>
+    <div class="actions" style="margin-top: 8px">
+      <button type="button" id="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<h2>Gmail and Outlook</h2>
+<div class="card">
+  <p class="muted">Sign-in with Google and Microsoft comes in the next version. Until then, Gmail can be added above as IMAP (imap.gmail.com, port 993) with an app password. Outlook and Microsoft 365 only accept Microsoft sign-in for IMAP, so they wait for that version.</p>
+</div>
+</div>
+
+<script>
+(function () {
+  'use strict'
+  var seq = 0
+  var pending = {}
+  function call (action, params) {
+    return new Promise(function (resolve) {
+      var requestId = 'req-' + (++seq)
+      pending[requestId] = resolve
+      window.parent.postMessage({ type: 'orca-panel-action', requestId: requestId, action: action, params: params }, '*')
+      setTimeout(function () {
+        if (pending[requestId]) { delete pending[requestId]; resolve(null) }
+      }, 8000)
+    })
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data
+    if (!d || d.type !== 'orca-panel-action-result') return
+    var resolve = pending[d.requestId]
+    if (!resolve) return
+    delete pending[d.requestId]
+    resolve(d)
+  })
+  function stored (result) {
+    if (!result || !result.ok || !result.value) return null
+    return result.value.value === undefined ? null : result.value.value
+  }
+  function read (key) { return call('storage.get', { key: key }).then(stored) }
+  var $ = function (id) { return document.getElementById(id) }
+  var lastRequestId = null
+  var confirming = null
+
+  function send (action, payload) {
+    lastRequestId = 'r' + Date.now()
+    return call('storage.set', { key: 'request', value: { id: lastRequestId, action: action, payload: payload, at: Date.now() } })
+      .then(function () { return call('panel.runCommand', { commandId: 'mailbox.request' }) })
+      .then(function () { setTimeout(refresh, 700) })
+  }
+
+  function renderAccounts (accounts) {
+    var list = $('accounts')
+    list.textContent = ''
+    $('no-accounts').hidden = accounts.length > 0
+    accounts.forEach(function (a) {
+      var li = document.createElement('li')
+      li.className = 'acc'
+      var main = document.createElement('div')
+      main.className = 'acc-main'
+      var name = document.createElement('div')
+      name.className = 'acc-name'
+      name.textContent = a.label
+      var sub = document.createElement('div')
+      sub.className = 'acc-sub'
+      sub.textContent = a.username + ' · ' + a.host + ':' + a.port
+      main.appendChild(name)
+      main.appendChild(sub)
+      var badge = document.createElement('span')
+      badge.className = 'badge'
+      badge.textContent = 'IMAP'
+      var remove = document.createElement('button')
+      remove.type = 'button'
+      remove.className = 'danger'
+      remove.textContent = 'Remove'
+      remove.addEventListener('click', function () { confirming = a.id; refresh() })
+      li.appendChild(main)
+      li.appendChild(badge)
+      li.appendChild(remove)
+      if (confirming === a.id) {
+        remove.hidden = true
+        var box = document.createElement('div')
+        box.className = 'confirm'
+        var text = document.createElement('span')
+        text.className = 'muted'
+        text.textContent = 'Remove this account and its synced copy from this computer? Your mailbox is not changed.'
+        var yes = document.createElement('button')
+        yes.type = 'button'
+        yes.className = 'danger'
+        yes.textContent = 'Remove'
+        yes.addEventListener('click', function () { confirming = null; send('remove', { accountId: a.id }) })
+        var no = document.createElement('button')
+        no.type = 'button'
+        no.textContent = 'Keep'
+        no.addEventListener('click', function () { confirming = null; refresh() })
+        box.appendChild(text)
+        box.appendChild(yes)
+        box.appendChild(no)
+        li.appendChild(box)
+      }
+      list.appendChild(li)
+    })
+  }
+
+  function renderPending (p) {
+    var box = $('pending')
+    box.hidden = !p
+    $('submit').disabled = !!p && p.state !== 'error'
+    if (!p) return
+    box.classList.toggle('error-state', p.state === 'error')
+    $('cancel').textContent = p.state === 'error' ? 'Dismiss' : 'Cancel'
+    if (p.state === 'error') {
+      $('pending-title').textContent = 'Could not add ' + p.label
+      $('pending-text').textContent = p.message || ''
+      $('pending-url').hidden = true
+      return
+    }
+    $('pending-title').textContent = 'Finish in your browser'
+    $('pending-text').textContent = p.state === 'waiting'
+      ? 'A page opened in your browser for the password of ' + p.label + '. If it did not open, copy this address into your browser:'
+      : 'Opening the sign-in page…'
+    $('pending-url').hidden = !p.url
+    $('pending-url').textContent = p.url || ''
+  }
+
+  function renderResult (r) {
+    var errors = (r && r.requestId === lastRequestId && r.errors) || {}
+    Array.prototype.forEach.call(document.querySelectorAll('.error[data-for]'), function (el) {
+      var key = el.getAttribute('data-for')
+      el.textContent = errors[key] || ''
+      var input = document.getElementById(key)
+      if (input) input.setAttribute('aria-invalid', errors[key] ? 'true' : 'false')
+    })
+    $('result').textContent = r && r.requestId === lastRequestId && !r.errors ? r.message : ''
+  }
+
+  function refresh () {
+    return Promise.all([read('accounts'), read('pending'), read('requestResult')]).then(function (r) {
+      renderAccounts(Array.isArray(r[0]) ? r[0] : [])
+      renderPending(r[1])
+      renderResult(r[2])
+    })
+  }
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault()
+    var data = {}
+    Array.prototype.forEach.call($('form').querySelectorAll('input'), function (input) { data[input.name] = input.value })
+    $('submit').disabled = true
+    send('add-imap', data)
+  })
+  $('cancel').addEventListener('click', function () { send('cancel', {}) })
+
+  refresh()
+  setInterval(function () { if (document.visibilityState === 'visible') refresh() }, 3000)
+})()
+</script>
+</body>
+</html>

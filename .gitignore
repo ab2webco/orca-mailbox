@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+/.atl/
+
+# Screenshots are build output; regenerate with `npm run shots`.
+e2e-results/shots/
+e2e-results/sheets/

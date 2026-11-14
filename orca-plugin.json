@@ -1,0 +1,52 @@
+{
+  "manifestVersion": 1,
+  "id": "orca-mailbox",
+  "publisher": "ab2web",
+  "name": "Mailbox",
+  "version": "0.1.0",
+  "description": "Load the headers of all your mail (sender, recipients, subject, date, flags, size) from the IMAP accounts you add, with totals and the latest messages in one panel. Starts a helper process with Orca's own Node that connects to the mail servers you add and keeps a copy of those headers on this computer. Passwords are typed in your browser and kept in Orca's secrets. Read-only: it never moves, flags or deletes mail.",
+  "engines": {
+    "orca": ">=1.4.160"
+  },
+  "pluginApi": 1,
+  "main": "main.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "mailbox",
+        "title": "Mail",
+        "icon": "inbox",
+        "entry": "inbox.html",
+        "surface": "nav"
+      },
+      {
+        "id": "mailbox-accounts",
+        "title": "Mailbox",
+        "icon": "mail",
+        "entry": "settings.html",
+        "surface": "settings"
+      }
+    ],
+    "commands": [
+      {
+        "id": "mailbox.sync",
+        "title": "Mailbox: Sync all accounts"
+      },
+      {
+        "id": "mailbox.request",
+        "title": "Mailbox: Apply the last panel action"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "storage"
+    },
+    {
+      "kind": "secrets"
+    },
+    {
+      "kind": "process:spawn"
+    }
+  ]
+}
