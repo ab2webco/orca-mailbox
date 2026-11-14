@@ -19,7 +19,8 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--background, #0a0a0a); color: var(--foreground, #fafafa); }
-  body { padding: 16px; font-size: 13px; line-height: 1.45; }
+  body { padding: 16px; font-size: 13px; line-height: 1.45; font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif); }
+  main, #no-accounts { max-width: 960px; margin: 0 auto; }
   [hidden] { display: none !important; }
   .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .account { flex: 1 1 180px; min-width: 0; }
@@ -189,10 +190,13 @@
     if (error && !running) {
       text.textContent = error.kind === 'auth' ? 'Sign-in failed' : 'Sync stopped'
       detail.textContent = error.message || ''
+      // A rejected password stays rejected: retrying would only fail again.
+      $('sync').hidden = error.kind === 'auth'
       $('sync').textContent = 'Try again'
       return
     }
-    $('sync').textContent = 'Sync now'
+    $('sync').hidden = false
+    $('sync').textContent = running ? 'Syncing…' : 'Sync now'
     if (running) {
       text.textContent = 'Syncing…'
       if (progress && progress.ratio !== null && progress.ratio !== undefined) {

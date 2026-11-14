@@ -15,7 +15,8 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--background, #0a0a0a); color: var(--foreground, #fafafa); }
-  body { padding: 16px; font-size: 13px; line-height: 1.45; max-width: 760px; }
+  body { padding: 16px; font-size: 13px; line-height: 1.45; font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', sans-serif); }
+  .page { max-width: 760px; margin: 0 auto; }
   [hidden] { display: none !important; }
   h1 { font-size: 16px; margin: 0 0 4px; }
   h2 { font-size: 14px; margin: 24px 0 8px; }
@@ -57,6 +58,7 @@
 </style>
 </head>
 <body>
+<div class="page">
 <h1>Mailbox</h1>
 <p class="muted">Load the headers of your mail into Orca. Read-only: nothing here moves, flags or deletes mail.</p>
 
@@ -93,7 +95,7 @@
     </div>
     <div class="field wide">
       <label for="trashFolder">Trash folder <span class="hint">(optional)</span></label>
-      <input id="trashFolder" name="trashFolder" placeholder="Found automatically when the server marks it" autocomplete="off">
+      <input id="trashFolder" name="trashFolder" placeholder="Detected automatically" autocomplete="off">
       <span class="hint">Only needed if your server does not mark its Trash folder. Used by a later version for safe deletes.</span>
       <span class="error" data-for="trashFolder"></span>
     </div>
@@ -116,6 +118,7 @@
 <h2>Gmail and Outlook</h2>
 <div class="card">
   <p class="muted">Sign-in with Google and Microsoft comes in the next version. Until then, Gmail can be added above as IMAP (imap.gmail.com, port 993) with an app password. Outlook and Microsoft 365 only accept Microsoft sign-in for IMAP, so they wait for that version.</p>
+</div>
 </div>
 
 <script>

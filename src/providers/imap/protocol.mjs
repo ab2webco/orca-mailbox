@@ -16,10 +16,11 @@ const LBRACE = 0x7b
 const LBRACKET = 0x5b
 const RBRACKET = 0x5d
 
-/** @typedef {string | null | Token[]} Token */
+/** @typedef {import('./token.mjs').Token} Token */
 
 /** Streams bytes in, whole responses out. */
 export function createResponseReader () {
+  /** @type {Buffer} */
   let pending = Buffer.alloc(0)
   return {
     /**

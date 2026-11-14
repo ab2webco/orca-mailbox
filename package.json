@@ -5,7 +5,10 @@
   "description": "Verification harness for the Mailbox Orca Lab plugin: unit tests, manifest and panel checks, screenshots.",
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
-    "check": "npm test",
-    "shots": "node scripts/shots.mjs"
+    "check": "npm run typecheck && npm test",
+    "shots": "node scripts/shots.mjs",
+    "setup": "node scripts/setup.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "sheets": "node scripts/contact-sheets.mjs"
   }
 }

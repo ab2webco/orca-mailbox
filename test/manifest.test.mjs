@@ -56,3 +56,19 @@ test('the plugin tree has no symlinks and no node_modules (Orca rejects both)', 
   }
   walk(ROOT)
 })
+
+test('no shipped file loads the sample data under e2e/', () => {
+  /** @type {string[]} */
+  const shipped = ['main.mjs', 'inbox.html', 'settings.html']
+  /** @param {string} dir */
+  const walk = (dir) => {
+    for (const name of readdirSync(join(ROOT, dir))) {
+      const rel = join(dir, name)
+      if (statSync(join(ROOT, rel)).isDirectory()) walk(rel)
+      else if (/\.(mjs|html)$/.test(name)) shipped.push(rel)
+    }
+  }
+  walk('src')
+  walk('sidecar')
+  for (const file of shipped) assert.doesNotMatch(readFileSync(join(ROOT, file), 'utf8'), /e2e\//, file)
+})

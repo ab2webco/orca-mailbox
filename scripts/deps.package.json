@@ -1,0 +1,10 @@
+{
+  "name": "orca-mailbox-harness-deps",
+  "private": true,
+  "description": "Verification harness dependencies for orca-mailbox. They live outside the plugin tree: Orca hashes every file under the plugin root and rejects symlinks, and node_modules/.bin is full of them.",
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "playwright": "1.59.1",
+    "typescript": "5.9.3"
+  }
+}
