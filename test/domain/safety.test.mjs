@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -27,7 +27,9 @@ function shippedSources () {
       else if (/\.(mjs|js|cjs|html)$/.test(name)) files.push(full)
     }
   }
-  walk(join(ROOT, 'src'))
+  for (const dir of ['src', 'sidecar']) {
+    if (existsSync(join(ROOT, dir))) walk(join(ROOT, dir))
+  }
   for (const name of readdirSync(ROOT)) {
     if (/\.(mjs|html)$/.test(name)) files.push(join(ROOT, name))
   }
@@ -68,7 +70,9 @@ test('IMAP EXPUNGE, UID EXPUNGE and CLOSE are refused outside the Trash folder',
 
 test('no shipped file builds an IMAP EXPUNGE or CLOSE command except the guard', () => {
   const offenders = shippedSources()
-    .filter((f) => f.path !== SAFETY_FILE && /['"`]\s*(UID\s+)?(EXPUNGE|CLOSE)\b/i.test(f.text))
+    // EXPUNGE in any case; CLOSE upper-case only, so a socket's 'close' event is not a hit.
+    .filter((f) => f.path !== SAFETY_FILE &&
+      (/['"`]\s*(UID\s+)?EXPUNGE\b/i.test(f.text) || /['"`]\s*CLOSE\b/.test(f.text)))
     .map((f) => f.path)
   assert.deepEqual(offenders, [])
 })
