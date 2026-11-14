@@ -1,6 +1,9 @@
-# Mail Inbox plugin (orca-mail-inbox) — task file
+# Mailbox plugin (orca-mailbox) — task file
 
-Ticket: GMAIL-SYNC. Branch: `gmail-sync`. No remote: nothing is pushed.
+Ticket: GMAIL-SYNC. Branch: `gmail-sync`. Public remote `ab2webco/orca-mailbox`: one PR
+with CI green; no merge, tag or release (the lead does that after the owner approves).
+The repo is public: no secrets, tokens, real mail or personal addresses; fixtures are
+hand-built.
 
 ## Objective
 
@@ -20,7 +23,7 @@ deleted.
 
 ## Slice 1 checklist
 
-- [ ] S1-01 Skeleton: `orca-plugin.json` (id `orca-mail-inbox`, publisher `ab2web`),
+- [ ] S1-01 Skeleton: `orca-plugin.json` (id `orca-mailbox`, publisher `ab2web`),
       nav panel, settings panel, README, AGENTS.md, check script; manifest test.
 - [ ] S1-02 Host facts: can the worker open raw TCP/TLS sockets and listen on loopback?
       Evidence from orca-oss source. Decide where IMAP and the OAuth loopback run.
@@ -41,18 +44,20 @@ deleted.
       app registration steps documented. Sync implemented or moved to slice 1b.
 - [ ] S1-09 Worker wiring: commands, secrets for credentials, storage for records and
       progress, panel ↔ worker request channel through storage.
-- [ ] S1-10 Panels: nav panel (accounts, sync progress, total count, total size,
-      recent messages list); settings panel (add IMAP account, connect Gmail/Outlook,
-      remove account). Nothing destructive.
+- [ ] S1-10 Panels: nav panel shows ONE account at a time with an account switcher
+      (its sync progress, total count, total size, recent messages list; never a mixed
+      list); settings panel (add IMAP account, remove account). Nothing destructive.
 - [ ] S1-11 Screenshots of both panels at 1440, 768, 390, 320, light and dark, read and
       kept under `e2e-results/`.
 - [ ] S1-12 Live probes: what ran live, what is pending for the owner (cPanel IMAP,
       Google Cloud client, Entra app).
+- [ ] S1-13 CI: GitHub Actions running typecheck and tests; branch pushed; ONE PR on
+      ab2webco/orca-mailbox with CI green.
 
 ## Acceptance criteria
 
 - Every stored record carries `accountId` and `provider`; the UI only reads the
-  normalized record.
+  normalized record, one account at a time.
 - Credentials (passwords, tokens) are only written through the `secrets` capability.
 - The requested Gmail scope set excludes `https://mail.google.com/`; a test fails if
   it does not.

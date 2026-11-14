@@ -26,8 +26,8 @@ const ACCOUNT_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
 export function resolveDataDir (env, home) {
   const userData = env.ORCA_USER_DATA_PATH
   return userData
-    ? join(userData, 'plugins-data', 'ab2web.orca-mail-inbox', 'mail')
-    : join(home, '.orca-mail-inbox')
+    ? join(userData, 'plugins-data', 'ab2web.orca-mailbox', 'mail')
+    : join(home, '.orca-mailbox')
 }
 
 /**

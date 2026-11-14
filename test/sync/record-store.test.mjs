@@ -97,6 +97,6 @@ test('a snapshot stays under the panel message budget even with long fields', ()
 })
 
 test('resolveDataDir prefers Orca user data and falls back to the home directory', () => {
-  assert.equal(resolveDataDir({ ORCA_USER_DATA_PATH: '/u' }, '/h'), join('/u', 'plugins-data', 'ab2web.orca-mail-inbox', 'mail'))
-  assert.equal(resolveDataDir({}, '/h'), join('/h', '.orca-mail-inbox'))
+  assert.equal(resolveDataDir({ ORCA_USER_DATA_PATH: '/u' }, '/h'), join('/u', 'plugins-data', 'ab2web.orca-mailbox', 'mail'))
+  assert.equal(resolveDataDir({}, '/h'), join('/h', '.orca-mailbox'))
 })

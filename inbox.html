@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mail</title>
+<style>
+  :root {
+    --mb-bg: var(--background, #0a0a0a);
+    --mb-fg: var(--foreground, #fafafa);
+    --mb-muted: var(--muted-foreground, #a1a1a1);
+    --mb-border: var(--border, rgb(255 255 255 / 0.1));
+    --mb-card: var(--card, transparent);
+    --mb-accent: var(--primary, #e5e5e5);
+    --mb-accent-fg: var(--primary-foreground, #171717);
+    --mb-subtle: var(--muted, #262626);
+    --mb-danger: var(--destructive, #ff6568);
+    --mb-radius: var(--radius, 8px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--background, #0a0a0a); color: var(--foreground, #fafafa); }
+  body { padding: 16px; font-size: 13px; line-height: 1.45; }
+  [hidden] { display: none !important; }
+  .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .account { flex: 1 1 180px; min-width: 0; }
+  .account-name { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-sub { color: var(--muted-foreground, #a1a1a1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  select, button {
+    font: inherit; color: var(--foreground, #fafafa); background: var(--mb-card);
+    border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 6px 10px; max-width: 100%;
+  }
+  select { min-width: 0; flex: 1 1 140px; }
+  button { cursor: pointer; white-space: nowrap; }
+  button.primary { background: var(--mb-accent); color: var(--mb-accent-fg); border-color: transparent; font-weight: 600; }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .status { border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 10px 12px; margin-bottom: 12px; }
+  .status-line { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .status-text { font-weight: 600; }
+  .status-detail { color: var(--muted-foreground, #a1a1a1); }
+  .status.error { border-color: var(--mb-danger); }
+  .status.error .status-text { color: var(--mb-danger); }
+  .bar { height: 6px; border-radius: 3px; background: var(--mb-subtle); margin-top: 8px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; width: 0; background: var(--mb-accent); transition: width 0.4s; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .stat { border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 10px 12px; min-width: 0; }
+  .stat-value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat-label { color: var(--muted-foreground, #a1a1a1); font-size: 12px; }
+  h2 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--muted-foreground, #a1a1a1); }
+  ul.messages { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border, rgb(255 255 255 / 0.1)); }
+  .msg { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; column-gap: 8px; padding: 8px 2px; border-bottom: 1px solid var(--border, rgb(255 255 255 / 0.1)); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; background: transparent; }
+  .msg.unread .dot { background: var(--mb-accent); }
+  .msg-main { min-width: 0; }
+  .msg-from, .msg-subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msg.unread .msg-from, .msg.unread .msg-subject { font-weight: 600; }
+  .msg-subject { color: var(--muted-foreground, #a1a1a1); }
+  .msg.unread .msg-subject { color: var(--foreground, #fafafa); }
+  .msg-meta { text-align: right; color: var(--muted-foreground, #a1a1a1); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .empty { border: 1px dashed var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--mb-radius); padding: 24px 16px; text-align: center; color: var(--muted-foreground, #a1a1a1); }
+  .empty strong { display: block; color: var(--foreground, #fafafa); font-size: 15px; margin-bottom: 4px; }
+  .note { color: var(--muted-foreground, #a1a1a1); font-size: 12px; margin-top: 8px; }
+  @media (max-width: 360px) {
+    body { padding: 12px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:last-child { grid-column: span 2; }
+    .msg-meta .size { display: none; }
+  }
+</style>
+</head>
+<body>
+<section id="no-accounts" class="empty" hidden>
+  <strong>No mail accounts yet</strong>
+  Add one in Settings → Mailbox. Any IMAP mailbox works, including cPanel hosting.
+</section>
+
+<main id="account-view" hidden>
+  <div class="top">
+    <div class="account">
+      <div class="account-name" id="account-name"></div>
+      <div class="account-sub" id="account-sub"></div>
+    </div>
+    <select id="switcher" aria-label="Account" hidden></select>
+    <button id="sync" class="primary" type="button">Sync now</button>
+  </div>
+
+  <div class="status" id="status" role="status" aria-live="polite">
+    <div class="status-line">
+      <span class="status-text" id="status-text"></span>
+      <span class="status-detail" id="status-detail"></span>
+    </div>
+    <div class="bar" id="bar" hidden><span id="bar-fill"></span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="count">0</div><div class="stat-label">Messages</div></div>
+    <div class="stat"><div class="stat-value" id="size">0 B</div><div class="stat-label">Total size</div></div>
+    <div class="stat"><div class="stat-value" id="unread">0</div><div class="stat-label">Unread</div></div>
+  </div>
+
+  <h2>Most recent</h2>
+  <ul class="messages" id="messages"></ul>
+  <div class="empty" id="no-messages" hidden>No messages synced for this account yet.</div>
+  <p class="note">Headers only: sender, recipients, subject, date, flags and size. This panel never changes your mailbox.</p>
+</main>
+
+<script>
+(function () {
+  'use strict'
+  var seq = 0
+  var pending = {}
+  // The iframe has an opaque origin: '*' is the only usable target; the host checks the window.
+  function call (action, params) {
+    return new Promise(function (resolve) {
+      var requestId = 'req-' + (++seq)
+      pending[requestId] = resolve
+      window.parent.postMessage({ type: 'orca-panel-action', requestId: requestId, action: action, params: params }, '*')
+      setTimeout(function () {
+        if (pending[requestId]) { delete pending[requestId]; resolve(null) }
+      }, 8000)
+    })
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data
+    if (!d || d.type !== 'orca-panel-action-result') return
+    var resolve = pending[d.requestId]
+    if (!resolve) return
+    delete pending[d.requestId]
+    resolve(d)
+  })
+  // storage.get returns { value }, and the bridge wraps it again.
+  function stored (result) {
+    if (!result || !result.ok || !result.value) return null
+    return result.value.value === undefined ? null : result.value.value
+  }
+  function read (key) { return call('storage.get', { key: key }).then(stored) }
+
+  var lang = document.documentElement.lang || navigator.language || 'en'
+  var $ = function (id) { return document.getElementById(id) }
+  var state = { accounts: [], selected: null }
+
+  function formatBytes (n) {
+    if (!n) return '0 B'
+    var units = ['B', 'KB', 'MB', 'GB', 'TB']
+    var i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)))
+    var v = n / Math.pow(1024, i)
+    return (i === 0 ? String(n) : v.toFixed(v < 10 ? 1 : 0)) + ' ' + units[i]
+  }
+  function formatCount (n) { return new Intl.NumberFormat(lang).format(n || 0) }
+  function formatDate (ms) {
+    if (!ms) return ''
+    var d = new Date(ms)
+    var now = new Date()
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })
+    if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(lang, { month: 'short', day: 'numeric' })
+    return d.toLocaleDateString(lang, { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+  function ago (ms) {
+    if (!ms) return ''
+    var s = Math.max(0, Math.round((Date.now() - ms) / 1000))
+    if (s < 60) return 'just now'
+    if (s < 3600) return Math.round(s / 60) + ' min ago'
+    if (s < 86400) return Math.round(s / 3600) + ' h ago'
+    return formatDate(ms)
+  }
+
+  function renderSwitcher () {
+    var sw = $('switcher')
+    sw.hidden = state.accounts.length < 2
+    sw.textContent = ''
+    state.accounts.forEach(function (a) {
+      var o = document.createElement('option')
+      o.value = a.id
+      o.textContent = a.label
+      if (a.id === state.selected) o.selected = true
+      sw.appendChild(o)
+    })
+  }
+
+  function renderStatus (status, snapshot) {
+    var box = $('status')
+    var text = $('status-text')
+    var detail = $('status-detail')
+    var bar = $('bar')
+    var progress = snapshot && snapshot.progress
+    var running = status && status.running
+    var error = status && status.error
+    box.classList.toggle('error', !!error && !running)
+    bar.hidden = true
+    if (error && !running) {
+      text.textContent = error.kind === 'auth' ? 'Sign-in failed' : 'Sync stopped'
+      detail.textContent = error.message || ''
+      $('sync').textContent = 'Try again'
+      return
+    }
+    $('sync').textContent = 'Sync now'
+    if (running) {
+      text.textContent = 'Syncing…'
+      if (progress && progress.ratio !== null && progress.ratio !== undefined) {
+        detail.textContent = formatCount(progress.fetched) + ' of ' + formatCount(progress.total) + ' · folder ' + Math.min(progress.foldersDone + 1, progress.foldersTotal) + ' of ' + progress.foldersTotal
+        bar.hidden = false
+        $('bar-fill').style.width = Math.round(progress.ratio * 100) + '%'
+      } else {
+        detail.textContent = 'Connecting to the server'
+      }
+      return
+    }
+    if (snapshot && snapshot.phase === 'done') {
+      text.textContent = 'Up to date'
+      detail.textContent = 'Last sync ' + ago(snapshot.updatedAt)
+    } else if (snapshot && snapshot.phase === 'syncing') {
+      text.textContent = 'Sync paused'
+      detail.textContent = 'It will continue where it stopped. ' + formatCount(progress ? progress.fetched : 0) + ' synced so far.'
+    } else {
+      text.textContent = 'Not synced yet'
+      detail.textContent = 'Press Sync now to load this mailbox.'
+    }
+  }
+
+  function renderMessages (snapshot) {
+    var list = $('messages')
+    list.textContent = ''
+    var recent = (snapshot && snapshot.recent) || []
+    $('no-messages').hidden = recent.length > 0
+    list.hidden = recent.length === 0
+    recent.forEach(function (m) {
+      var li = document.createElement('li')
+      li.className = 'msg' + (m.unread ? ' unread' : '')
+      var dot = document.createElement('span')
+      dot.className = 'dot'
+      dot.setAttribute('aria-label', m.unread ? 'Unread' : '')
+      var main = document.createElement('div')
+      main.className = 'msg-main'
+      var from = document.createElement('div')
+      from.className = 'msg-from'
+      from.textContent = m.from ? (m.from.name || m.from.address) : '(no sender)'
+      if (m.from) from.title = m.from.address
+      var subject = document.createElement('div')
+      subject.className = 'msg-subject'
+      subject.textContent = m.subject || '(no subject)'
+      main.appendChild(from)
+      main.appendChild(subject)
+      var meta = document.createElement('div')
+      meta.className = 'msg-meta'
+      var date = document.createElement('div')
+      date.textContent = formatDate(m.dateMs)
+      var size = document.createElement('div')
+      size.className = 'size'
+      size.textContent = formatBytes(m.sizeBytes)
+      meta.appendChild(date)
+      meta.appendChild(size)
+      li.appendChild(dot)
+      li.appendChild(main)
+      li.appendChild(meta)
+      list.appendChild(li)
+    })
+  }
+
+  function render (status, snapshot) {
+    var hasAccounts = state.accounts.length > 0
+    $('no-accounts').hidden = hasAccounts
+    $('account-view').hidden = !hasAccounts
+    if (!hasAccounts) return
+    var account = state.accounts.filter(function (a) { return a.id === state.selected })[0]
+    $('account-name').textContent = account.label
+    $('account-sub').textContent = account.username + ' · ' + account.host
+    renderSwitcher()
+    var totals = (snapshot && snapshot.totals) || { count: 0, sizeBytes: 0, unread: 0 }
+    $('count').textContent = formatCount(totals.count)
+    $('size').textContent = formatBytes(totals.sizeBytes)
+    $('unread').textContent = formatCount(totals.unread)
+    renderStatus(status, snapshot)
+    $('sync').disabled = !!(status && status.running)
+    renderMessages(snapshot)
+  }
+
+  function refresh () {
+    return Promise.all([read('accounts'), read('ui:selectedAccount')]).then(function (r) {
+      state.accounts = Array.isArray(r[0]) ? r[0] : []
+      var wanted = r[1]
+      var ids = state.accounts.map(function (a) { return a.id })
+      state.selected = ids.indexOf(state.selected) !== -1 ? state.selected : (ids.indexOf(wanted) !== -1 ? wanted : ids[0] || null)
+      if (!state.selected) { render(null, null); return }
+      var id = state.selected
+      return Promise.all([read('status:' + id), read('snapshot:' + id)]).then(function (s) {
+        if (id === state.selected) render(s[0], s[1])
+      })
+    })
+  }
+
+  $('switcher').addEventListener('change', function (e) {
+    state.selected = e.target.value
+    call('storage.set', { key: 'ui:selectedAccount', value: state.selected })
+    refresh()
+  })
+  $('sync').addEventListener('click', function () {
+    $('sync').disabled = true
+    call('storage.set', { key: 'request', value: { id: 'r' + Date.now(), action: 'sync', payload: { accountId: state.selected }, at: Date.now() } })
+      .then(function () { return call('panel.runCommand', { commandId: 'mailbox.request' }) })
+      .then(function () { setTimeout(refresh, 800) })
+  })
+
+  refresh()
+  // No storage events exist: poll, but only while the panel is visible.
+  setInterval(function () { if (document.visibilityState === 'visible') refresh() }, 4000)
+})()
+</script>
+</body>
+</html>

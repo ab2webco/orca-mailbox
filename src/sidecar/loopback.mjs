@@ -66,7 +66,7 @@ const PAGE_STYLE = `
 export function renderPasswordPage ({ label, username, host, action, error }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mail Inbox: sign in</title><style>${PAGE_STYLE}</style></head><body><main>
+<title>Mailbox: sign in</title><style>${PAGE_STYLE}</style></head><body><main>
 <h1>${escapeHtml(label)}</h1>
 <p>${escapeHtml(username)} on ${escapeHtml(host)}</p>
 <form method="post" action="${escapeHtml(action)}">
@@ -81,7 +81,7 @@ ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ''}
 export function renderMessagePage (title, message) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mail Inbox</title><style>${PAGE_STYLE}</style></head><body><main>
+<title>Mailbox</title><style>${PAGE_STYLE}</style></head><body><main>
 <h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p></main></body></html>`
 }
 
