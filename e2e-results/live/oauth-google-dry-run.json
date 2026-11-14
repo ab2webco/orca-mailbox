@@ -1,0 +1,13 @@
+{
+  "runtime": "Orca/Electron 43.8.6, node 24.22.1",
+  "redirectUri": "http://127.0.0.1:55449/<nonce>",
+  "googleAuthEndpoint": {
+    "status": 302,
+    "redirectsTo": "/signin/oauth/error",
+    "invalidClient": true
+  },
+  "loopbackCallback": {
+    "status": 200
+  },
+  "codeReceived": true
+}
